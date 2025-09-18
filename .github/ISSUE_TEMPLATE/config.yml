@@ -1,2 +1,5 @@
 blank_issues_enabled: false
-contact_links: []
+contact_links:
+  - name: 📧 Contact Team
+    url: https://github.com/SilverOnedayAcademy
+    about: Contact the SilverOnedayAcademy team for questions
