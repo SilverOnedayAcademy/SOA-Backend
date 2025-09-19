@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Setup Passkey - SOA Backend</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-md-6">
+          <div class="card mt-5">
+            <div class="card-header">
+              <h2 class="text-center">Setup Your Passkey</h2>
+            </div>
+            <div class="card-body">
+              <div id="alert-container"></div>
+
+              <div class="text-center mb-4">
+                <h5>Welcome, <span th:text="${username}">User</span>!</h5>
+                <div th:if="${required}">
+                  <div class="alert alert-info" role="alert">
+                    <strong>⚠️ Passkey Required</strong><br />
+                    You must set up your passkey to complete registration and
+                    access your account.
+                  </div>
+                </div>
+                <p class="text-muted">
+                  Set up your passkey for secure, passwordless authentication
+                </p>
+              </div>
+
+              <div class="d-grid gap-2">
+                <button id="setupPasskeyBtn" class="btn btn-primary btn-lg">
+                  🔐 Setup Required Passkey
+                </button>
+              </div>
+
+              <div th:unless="${required}" class="text-center mt-4">
+                <p class="text-muted">You can also set up your passkey later</p>
+                <a href="/login" class="btn btn-outline-secondary"
+                  >Skip for Now</a
+                >
+              </div>
+
+              <div th:if="${required}" class="text-center mt-4">
+                <small class="text-muted">
+                  <strong>No passwords, no worries!</strong><br />
+                  Your device's biometrics or hardware key will be your only way
+                  to login.
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:inline="javascript">
+      const username = /*[[${username}]]*/ 'defaultUser';
+      const sessionId = /*[[${sessionId}]]*/ null;
+
+      function showAlert(message, type = 'danger') {
+        const alertContainer = document.getElementById('alert-container');
+        alertContainer.innerHTML = `
+              <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                  ${message}
+                  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+          `;
+      }
+
+      // Convert ArrayBuffer to Base64URL
+      function arrayBufferToBase64Url(arrayBuffer) {
+        const byteArray = new Uint8Array(arrayBuffer);
+        let str = '';
+        for (let i = 0; i < byteArray.length; i++) {
+          str += String.fromCharCode(byteArray[i]);
+        }
+        return btoa(str)
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=/g, '');
+      }
+
+      // Convert Base64URL to ArrayBuffer
+      function base64UrlToArrayBuffer(base64url) {
+        const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+        const padding = '===='.slice(0, (4 - (base64.length % 4)) % 4);
+        const binary = atob(base64 + padding);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes.buffer;
+      }
+
+      document
+        .getElementById('setupPasskeyBtn')
+        .addEventListener('click', async function () {
+          try {
+            // Begin registration
+            const requestBody = sessionId
+              ? { sessionId: sessionId }
+              : { username: username };
+
+            const beginResponse = await fetch('/webauthn/register/begin', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(requestBody),
+            });
+
+            if (!beginResponse.ok) {
+              throw new Error('Failed to begin registration');
+            }
+
+            const options = await beginResponse.json();
+
+            // Convert challenge and user.id from base64url to ArrayBuffer
+            options.publicKey.challenge = base64UrlToArrayBuffer(
+              options.publicKey.challenge
+            );
+            options.publicKey.user.id = base64UrlToArrayBuffer(
+              options.publicKey.user.id
+            );
+
+            // Call WebAuthn API
+            const credential = await navigator.credentials.create(options);
+
+            // Debug logging
+            console.log('🔍 WebAuthn credential created:', credential);
+            console.log('🔑 Credential ID:', credential.id);
+            console.log('📋 Credential type:', credential.type);
+            console.log(
+              '🔐 Raw ID length:',
+              credential.rawId ? credential.rawId.byteLength : 'null'
+            );
+
+            // Convert response to base64url
+            const registrationResponse = {
+              username: username,
+              sessionId: sessionId,
+              credential: {
+                id: credential.id,
+                rawId: arrayBufferToBase64Url(credential.rawId),
+                response: {
+                  clientDataJSON: arrayBufferToBase64Url(
+                    credential.response.clientDataJSON
+                  ),
+                  attestationObject: arrayBufferToBase64Url(
+                    credential.response.attestationObject
+                  ),
+                  publicKey: arrayBufferToBase64Url(
+                    credential.response.getPublicKey()
+                  ),
+                  publicKeyAlgorithm:
+                    credential.response.getPublicKeyAlgorithm(),
+                },
+                type: credential.type,
+              },
+            };
+
+            // Debug logging for registration response
+            console.log(
+              '📤 Registration response being sent:',
+              registrationResponse
+            );
+            console.log(
+              '🔑 Credential ID in response:',
+              registrationResponse.credential.id
+            );
+
+            // Finish registration
+            const finishResponse = await fetch('/webauthn/register/finish', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(registrationResponse),
+            });
+
+            const result = await finishResponse.json();
+
+            // Debug logging for server response
+            console.log('📥 Server response:', result);
+
+            if (result.success) {
+              showAlert(
+                'Passkey setup successful! You can now use it to login.',
+                'success'
+              );
+              setTimeout(() => {
+                window.location.href = '/login';
+              }, 2000);
+            } else {
+              showAlert(result.error || 'Registration failed');
+            }
+          } catch (error) {
+            console.error('Passkey setup error:', error);
+            showAlert('Failed to setup passkey. ' + error.message);
+          }
+        });
+    </script>
+  </body>
+</html>

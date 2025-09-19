@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - SOA Backend</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">SOA Backend</a>
+            <div class="navbar-nav ms-auto">
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button class="btn btn-outline-light btn-sm" type="submit">Logout</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Welcome to Your Dashboard</h3>
+                    </div>
+                    <div class="card-body">
+                        <h5>🎉 Successfully authenticated with Passkey!</h5>
+                        <p class="text-muted">You have successfully logged in using WebAuthn passkey authentication.</p>
+
+                        <div class="row mt-4">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">🔐 Secure Login</h6>
+                                        <p class="card-text small">Passwordless authentication using WebAuthn</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">👤 Member System</h6>
+                                        <p class="card-text small">Using your custom Member models</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">💾 Memory Storage</h6>
+                                        <p class="card-text small">In-memory repositories for development</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary" onclick="showUserInfo()">
+                                Show User Info
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="testPasskeyAuth()">
+                                Test Passkey Auth
+                            </button>
+                            <a href="/register" class="btn btn-outline-success">
+                                Register Another User
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6>System Info</h6>
+                    </div>
+                    <div class="card-body">
+                        <small class="text-muted">
+                            <div><strong>Authentication:</strong> WebAuthn/Passkey</div>
+                            <div><strong>Backend:</strong> Spring Boot</div>
+                            <div><strong>Security:</strong> Spring Security</div>
+                            <div><strong>Storage:</strong> In-Memory</div>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showUserInfo() {
+            alert('User information would be displayed here. This is a demo implementation.');
+        }
+
+        function testPasskeyAuth() {
+            alert('This would test passkey authentication. Your passkey is working if you can see this dashboard!');
+        }
+
+        // Show welcome message
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('login') === 'success') {
+                const toast = document.createElement('div');
+                toast.className = 'toast position-fixed top-0 end-0 m-3';
+                toast.setAttribute('role', 'alert');
+                toast.innerHTML = `
+                    <div class="toast-header bg-success text-white">
+                        <strong class="me-auto">Login Successful</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        Welcome! You have successfully logged in with your passkey.
+                    </div>
+                `;
+                document.body.appendChild(toast);
+                new bootstrap.Toast(toast).show();
+            }
+        });
+    </script>
+</body>
+</html>
